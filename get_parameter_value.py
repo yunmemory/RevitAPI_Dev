@@ -39,7 +39,8 @@ def get_value(element, parameters):
 
     # Get Type Name
     try:
-        ele_type = doc.GetElement(element.GetTypeId())
+        # ele_type = doc.GetElement(element.GetTypeId())
+        ele_type = element.Symbol.Family
         sub_group.append(ele_type)
     except:
         sub_group.append("null")
@@ -76,7 +77,8 @@ def get_value(element, parameters):
     # Get Type Value
     for tp in tp_parameters:
         try:
-            ele_type = doc.GetElement(element.GetTypeId())
+            #ele_type = doc.GetElement(element.GetTypeId())
+            ele_type = element.Symbol
             para = ele_type.LookupParameter(tp)
             sub_group.append(para.AsString())
         except:
