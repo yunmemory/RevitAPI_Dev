@@ -1,6 +1,7 @@
 # Load the Python Standard and DesignScript Libraries
 import sys
 import clr
+import csv
 
 clr.AddReference('ProtoGeometry')
 from Autodesk.DesignScript.Geometry import *
@@ -29,19 +30,22 @@ for cat_id in cat_Ids:
 # Parameter
 parameter = IN[0]
 tp_parameters = IN[1]
+FILE = IN[2]
 
 
 # function: get parameter value
 def get_value(element, parameters):
     sub_group = []
     sub_group.append(element.Id)
+    sub_group.append(element.Category.Name)
     sub_group.append(Element.Name.__get__(element))
 
-    # Get Type Name
+    # Get Family Name
     try:
         # ele_type = doc.GetElement(element.GetTypeId())
         ele_type = element.Symbol.Family
-        sub_group.append(ele_type)
+        ele_type_name = Element.Name.__get__(ele_type)
+        sub_group.append(ele_type_name)
     except:
         sub_group.append("null")
 
@@ -86,28 +90,33 @@ def get_value(element, parameters):
 
     # Get Location_Point
     try:
-        sub_group.append(element.Location.Point)
+        sub_group.append(round(element.Location.Point.X, 4))
+        sub_group.append(round(element.Location.Point.Y, 4))
+        sub_group.append(round(element.Location.Point.Z, 4))
+        sub_group.append(round(element.Location.Curve.GetEndPoint(0).X, 4))
+        sub_group.append(round(element.Location.Curve.GetEndPoint(0).Y, 4))
+        sub_group.append(round(element.Location.Curve.GetEndPoint(0).Z, 4))
     except:
-        sub_group.append("null")
-
-    # Get Location_Curve
-    try:
-        sub_group.append(element.Location.Curve.GetEndPoint(0))
-    except:
-        sub_group.append("null")
+        pass
+        # sub_group.append("null")
 
     return sub_group
 
 
 # get parameter value for all elements
 out = []
-ele_name = ["Element_Id", "Element_Name", "Type_Name", "Phase_Created", "Phase_demolished", "Workset", "Level"]
-location = ["Locatin_Point", "Location_Curve"]
+ele_name = ["Element_Id", "Category", "Type_Name", "Element_Name", "Phase_Created", "Phase_demolished", "Workset", "Level"]
+location = ["Locatin_X", "Locatin_Y", "Locatin_Z"]
 for e in ele:
-    p_value = get_value(e, parameter)
-    out.append(p_value)
+    if e is not None:
+        p_value = get_value(e, parameter)
+        out.append(p_value)
 parameter = ele_name + parameter + tp_parameters + location
 out.insert(0, parameter)
+
+with open(FILE, "w") as csvfile:
+    writer = csv.writer(csvfile, delimiter="%")
+    writer.writerows(out)
 
 # Assign your output to the OUT variable.
 OUT = out
