@@ -32,6 +32,7 @@ for cat_id in cat_Ids:
 parameter = IN[0]
 tp_parameters = IN[1]
 FILE = IN[2]
+Separator = IN[3]
 
 
 # function: get parameter value
@@ -119,7 +120,7 @@ parameter = ele_name + parameter + tp_parameters + location
 out.insert(0, parameter)
 
 with open(FILE, "w") as csvfile:
-    writer = csv.writer(csvfile, delimiter="%")
+    writer = csv.writer(csvfile, delimiter=Separator)
     writer.writerows(out)
 
 # Assign your output to the OUT variable.
