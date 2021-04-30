@@ -19,8 +19,9 @@ from RevitServices.Transactions import TransactionManager
 doc = DocumentManager.Instance.CurrentDBDocument
 
 # Get model categories
+EX_LIST = ["Lines", "Detail Items", "RVT Links", "Imports in Families", "Project Information", "Sheets", "Coordination Model"]
 cat = doc.Settings.Categories
-cat_Ids = [t.Id for t in cat if str(t.CategoryType) == "Model"]
+cat_Ids = [t.Id for t in cat if str(t.CategoryType) == "Model" and t.Name not in EX_LIST]
 
 # Get elements for model categories
 ele = []
@@ -93,12 +94,16 @@ def get_value(element, parameters):
         sub_group.append(round(element.Location.Point.X, 4))
         sub_group.append(round(element.Location.Point.Y, 4))
         sub_group.append(round(element.Location.Point.Z, 4))
+    except:
+        pass
+
+    # Get Location_Curve
+    try:
         sub_group.append(round(element.Location.Curve.GetEndPoint(0).X, 4))
         sub_group.append(round(element.Location.Curve.GetEndPoint(0).Y, 4))
         sub_group.append(round(element.Location.Curve.GetEndPoint(0).Z, 4))
     except:
         pass
-        # sub_group.append("null")
 
     return sub_group
 
@@ -108,9 +113,8 @@ out = []
 ele_name = ["Element_Id", "Category", "Type_Name", "Element_Name", "Phase_Created", "Phase_demolished", "Workset", "Level"]
 location = ["Locatin_X", "Locatin_Y", "Locatin_Z"]
 for e in ele:
-    if e is not None:
-        p_value = get_value(e, parameter)
-        out.append(p_value)
+    p_value = get_value(e, parameter)
+    out.append(p_value)
 parameter = ele_name + parameter + tp_parameters + location
 out.insert(0, parameter)
 
