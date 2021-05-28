@@ -17,20 +17,24 @@ doc = DocumentManager.Instance.CurrentDBDocument
 uiapp = DocumentManager.Instance.CurrentUIApplication
 app = uiapp.Application
 
-Sheets = IN[0]
+Sheets = UnwrapElement(IN[0])
 Sheet_numbers_old = IN[1]
 Sheet_numbers_new = IN[2]
-Sheet_Parameter = "SHEET_NUMBER"
+Sheet_Parameter = "Sheet Number"
 
+test = []
 for sheet in Sheets:
     sheet_number_para = sheet.LookupParameter(Sheet_Parameter)
+    test.append(sheet_number_para)
     sheet_number_old = sheet_number_para.AsString()
-    sheet_index = Sheet_numbers_old.index(sheet_number_old)
-    sheet_number_new = Sheet_numbers_new[sheet_index]
-    # Start Transaction
-    TransactionManager.Instance.EnsureInTransaction(doc)
-    sheet_number_para.Set(sheet_number_new)
-    TransactionManager.Instance.TransactionTaskDone()
+    if sheet_number_old in Sheet_numbers_old:
+        sheet_index = Sheet_numbers_old.index(sheet_number_old)
+        sheet_number_new = Sheet_numbers_new[sheet_index]
+        if sheet_number_new != sheet_number_old:
+            # Start Transaction
+            TransactionManager.Instance.EnsureInTransaction(doc)
+            sheet_number_para.Set(sheet_number_new)
+            TransactionManager.Instance.TransactionTaskDone()
 
 # out
-out = Sheet_numbers_new
+OUT = Sheet_numbers_new
