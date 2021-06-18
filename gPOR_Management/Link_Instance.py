@@ -8,6 +8,7 @@ from RevitServices.Transactions import TransactionManager
 
 clr.AddReference("ProtoGeometry")
 from Autodesk.DesignScript.Geometry import *
+
 clr.AddReference("RevitAPI")
 import Autodesk
 from Autodesk.Revit.DB import *
@@ -27,12 +28,25 @@ for v in sheet_views:
         filtered_view.append(v)
 
 # Get the Revit link type
-revit_elements = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_RvtLinks).WhereElementIsElementType().ToElements()
+revit_elements = FilteredElementCollector(doc).OfCategory(
+    BuiltInCategory.OST_RvtLinks).WhereElementIsElementType().ToElements()
 revit_non_nest = []
 link_vi = []
 link_uvi = []
 view_link = []
 full_list = []
+
+# Get all Worksets and WorksetIds
+worksets = FilteredWorksetCollector(doc).OfKind(WorksetKind.UserWorkset).ToWorksets()
+workset_id = [i.Id for i in worksets]
+workset_visibility = []
+workset_defalt = []
+defaultVisibility = WorksetDefaultVisibilitySettings.GetWorksetDefaultVisibilitySettings(doc)
+for w in worksets:
+    w_id = w.Id
+    w_name = w.Name
+    setting = defaultVisibility.IsWorksetVisible(w_id)
+    workset_defalt.append(w_name + "--" + setting.ToString())
 
 # Remove the nested link type
 for l in revit_elements:
@@ -49,6 +63,14 @@ for lid in revit_non_nest:
         else:
             link_vi.append(link_name + "--show--" + view.Name)
 
+# Get workset visibility
+for v in filtered_view:
+    v_name = v.Name
+    for w in worksets:
+        w_id = w.Id
+        w_visibility = v.GetWorksetVisibility(w_id)
+        w_name = w.Name
+        workset_visibility.append(w_name + "--" + w_visibility.ToString() + "--" + v_name)
 
 # for lid in revit_non_nest:
 #     link_ele = doc.GetElement(lid)
@@ -62,4 +84,4 @@ for lid in revit_non_nest:
 # view_link.append(link_vi)
 
 
-OUT = link_vi
+OUT = link_vi, workset_visibility, workset_defalt
