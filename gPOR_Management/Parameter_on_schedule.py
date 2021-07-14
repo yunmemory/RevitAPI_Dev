@@ -40,6 +40,7 @@ for s in schedule_collector:
             if not s.IsTemplate:
                 schedule_type.append(s)
 
+
 # for s in schedule_type:
 #     field = s.Definition.GetSchedulableFields()
 #     for d in field:
@@ -56,14 +57,39 @@ for s in schedule_collector:
 #     else:
 #         shared_para_ele_failed.append(e)
 
+# Check binding
+def ParamBindingExists(doc, paramId):
+    para_type = ""
+    categories = []
+    map = doc.ParameterBindings
+    iterator = map.ForwardIterator()
+    iterator.Reset()
+    while iterator.MoveNext():
+        if iterator.Key.Id == paramId:
+            elemBind = iterator.Current
+            if elemBind.ToString() == "Autodesk.Revit.DB.InstanceBinding":
+                para_type = "Instance"
+            else:
+                para_type = "Type"
+            for cat in elemBind.Categories:
+                categories.append(cat.Name)
+            break
+    return categories, para_type
+
+
 # Test 1
 parameter_def_list = []
 for s in schedule_type:
-    definition = s.Definition
-    field_count = definition.GetFieldCount()
+    pdef = s.Definition
+    field_count = pdef.GetFieldCount()
     for i in range(field_count):
-        field = definition.GetField(i)
+        field = pdef.GetField(i)
         para_id = field.ParameterId
+        pbindings = ParamBindingExists(doc, para_id)
+        para_cat = pbindings[0]
+        para_typ = pbindings[1]
+        if para_typ != "Instance" and para_typ != "Type":
+            para_typ = "Not on PP list"
         if para_id.IntegerValue > 0:
             parameter_ele = doc.GetElement(para_id)
             parameter_def = parameter_ele.GetDefinition()
@@ -74,29 +100,40 @@ for s in schedule_type:
             try:
                 parameter_def_guid = parameter_ele.GuidValue.ToString()
             except:
-                parameter_def_guid = "None"
-            parameter_def_list.append(s.Name + "--" + parameter_def_name + "--" + parameter_def_group + "--" +
-                                      parameter_def_type + "--" + parameter_def_unit + "--" + parameter_def_guid)
-        elif para_id.IntegerValue < 0:
+                parameter_def_guid = "Project Parameter"
+            parameter_def_list.append([s.Name,
+                                       parameter_def_name,
+                                       para_typ,
+                                       parameter_def_group,
+                                       parameter_def_type,
+                                       parameter_def_unit,
+                                       parameter_def_guid,
+                                       str(para_cat)])
+        elif para_id.IntegerValue == -1:
             parameter_def_name = field.GetName()
             parameter_def_group = "NONE"
             parameter_def_type = "NONE"
             parameter_def_unit = "NONE"
-            parameter_def_guid = "NONE"
-            parameter_def_list.append(s.Name + "--" + parameter_def_name + "--" + parameter_def_group + "--" +
-                                      parameter_def_type + "--" + parameter_def_unit + "--" + parameter_def_guid)
-
-        # parameter_ele = doc.GetElement(p)
-        # if parameter_ele is not None:
-        #     parameter_def = parameter_ele.GetDefinition()
-        #     try:
-        #         parameter_def_name = parameter_def.Name
-        #         parameter_def_group = parameter_def.ParameterGroup
-        #         parameter_def_type = parameter_def.ParameterType
-        #         parameter_def_unit = parameter_def.UnitType
-        #         parameter_def_list.append(parameter_def_name + "--" + parameter_def_group + "--" +
-        # #                                   parameter_def_type + "--" + parameter_def_unit)
-        #     except:
-        #         parameter_def_list.append("null")
+            parameter_def_guid = "Combined/Formula Parameter"
+            parameter_def_list.append([s.Name,
+                                       parameter_def_name,
+                                       para_typ,
+                                       parameter_def_group,
+                                       parameter_def_type,
+                                       parameter_def_unit,
+                                       parameter_def_guid])
+        else:
+            parameter_def_name = field.GetName()
+            parameter_def_group = "NONE"
+            parameter_def_type = "NONE"
+            parameter_def_unit = "NONE"
+            parameter_def_guid = "Built-In Parameter"
+            parameter_def_list.append([s.Name,
+                                       parameter_def_name,
+                                       para_typ,
+                                       parameter_def_group,
+                                       parameter_def_type,
+                                       parameter_def_unit,
+                                       parameter_def_guid])
 
 OUT = parameter_def_list
