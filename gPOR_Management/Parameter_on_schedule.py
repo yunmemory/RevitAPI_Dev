@@ -26,17 +26,18 @@ import Autodesk
 from Autodesk.Revit.DB import *
 from Autodesk.Revit.UI import *
 
+# Get current document --------------------------------------------------
 doc = DocumentManager.Instance.CurrentDBDocument
+
+# Collect schedules from current model
 schedule_collector = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Schedules).ToElements()
 
 # Linked instance
 revit_link_ins = FilteredElementCollector(doc).OfCategory(
     BuiltInCategory.OST_RvtLinks).WhereElementIsNotElementType().ToElements()
 
-schedule_type = []
-schedule_field_para = []
-schedule_field_name = []
-schedule_name = []
+# Run linked model or not
+run_link_model = IN[0]
 
 
 # Schedule filter
@@ -49,22 +50,6 @@ def schedule_filter(schedule_set):
                     filter_schedule.append(s)
     return filter_schedule
 
-
-# for s in schedule_type:
-#     field = s.Definition.GetSchedulableFields()
-#     for d in field:
-#         schedule_field_para.append(d.ParameterId)
-#         schedule_field_name.append(d.GetName(doc))
-#
-# # Get sharedparameter elements
-# shared_para_ele = []
-# shared_para_ele_failed = []
-# for e in schedule_field_para:
-#     parameter_ele = doc.GetElement(e)
-#     if parameter_ele is not None:
-#         shared_para_ele.append(parameter_ele.GuidValue + parameter_ele.Name)
-#     else:
-#         shared_para_ele_failed.append(e)
 
 # Check binding
 def ParamBindingExists(document, paramId):
@@ -152,14 +137,21 @@ def get_para_details(document, schedule):
     return parameter_def_list
 
 
-# Get schedules from linked instance
-schedules_from_link = []
-for link in revit_link_ins:
-    linked_doc = link.GetLinkDocument()
-    if linked_doc is not None:
-        schedules = FilteredElementCollector(linked_doc).OfCategory(BuiltInCategory.OST_Schedules).ToElements()
-        f_schedule = schedule_filter(schedules)
-        schedules_from_link.append(get_para_details(linked_doc, f_schedule))
+schedules_from_models = []
+
+# Check to determine whether or not to run the linked models
+if run_link_model:
+    # Get schedules from linked instance
+    for link in revit_link_ins:
+        linked_doc = link.GetLinkDocument()
+        if linked_doc is not None:
+            schedules = FilteredElementCollector(linked_doc).OfCategory(BuiltInCategory.OST_Schedules).ToElements()
+            f_schedule = schedule_filter(schedules)
+            schedules_from_models.append(get_para_details(linked_doc, f_schedule))
+
+# Collect schedules from current model
+f_schedule_current = schedule_filter(schedule_collector)
+schedules_from_models.append(get_para_details(doc, f_schedule_current))
 
 # Output
-OUT = schedules_from_link
+OUT = schedules_from_models
