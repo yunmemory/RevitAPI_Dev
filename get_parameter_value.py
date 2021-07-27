@@ -19,9 +19,11 @@ from RevitServices.Transactions import TransactionManager
 doc = DocumentManager.Instance.CurrentDBDocument
 
 # Get model categories
-EX_LIST = ["Lines", "Detail Items", "RVT Links", "Imports in Families", "Project Information", "Sheets", "Coordination Model"]
+EX_LIST = ["Lines", "Detail Items", "RVT Links", "Imports in Families", "Project Information", "Sheets",
+           "Coordination Model", "Materials", "Schedules", "Views"]
 cat = doc.Settings.Categories
-cat_Ids = [t.Id for t in cat if str(t.CategoryType) == "Model" and t.Name not in EX_LIST]
+cat_cleaned = [t for t in cat if str(t.CategoryType) == "Model" or str(t.CategoryType) == "Internal"]
+cat_Ids = [t.Id for t in cat_cleaned if t.Name not in EX_LIST]
 
 # Get elements for model categories
 ele = []
@@ -72,6 +74,12 @@ def get_value(element, parameters):
     except:
         sub_group.append("null")
 
+    # Get Design Option
+    try:
+        sub_group.append(element.DesignOption.Name)
+    except:
+        sub_group.append("null")
+
     # Get Parameter value
     for p in parameters:
         para = element.LookupParameter(p)
@@ -111,7 +119,8 @@ def get_value(element, parameters):
 
 # get parameter value for all elements
 out = []
-ele_name = ["Element_Id", "Category", "Type_Name", "Element_Name", "Phase_Created", "Phase_demolished", "Workset", "Level"]
+ele_name = ["Element_Id", "Category", "Type_Name", "Element_Name", "Phase_Created", "Phase_demolished", "Workset",
+            "Level", "Design Option"]
 location = ["Locatin_X", "Locatin_Y", "Locatin_Z"]
 for e in ele:
     p_value = get_value(e, parameter)
@@ -119,9 +128,9 @@ for e in ele:
 parameter = ele_name + parameter + tp_parameters + location
 out.insert(0, parameter)
 
-with open(FILE, "w") as csvfile:
-    writer = csv.writer(csvfile, delimiter=Separator)
-    writer.writerows(out)
+# with open(FILE, "w") as csvfile:
+#     writer = csv.writer(csvfile, delimiter=Separator)
+#     writer.writerows(out)
 
 # Assign your output to the OUT variable.
 OUT = out
