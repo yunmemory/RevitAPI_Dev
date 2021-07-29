@@ -28,6 +28,15 @@ from Autodesk.Revit.UI import *
 
 doc = DocumentManager.Instance.CurrentDBDocument
 
+# Linked instance
+revit_link_ins = FilteredElementCollector(doc).OfCategory(
+    BuiltInCategory.OST_RvtLinks).WhereElementIsNotElementType().ToElements()
+
+# Run linked model or not
+run_link_model = IN[0]
+
+para_elements = FilteredElementCollector(doc).OfClass(ParameterElement).ToElements()
+
 
 def GetAllProjectParameters(doc):
     project_paras = []
@@ -64,42 +73,75 @@ def ParamBindingExists(doc, paramId):
 
 
 def GetSharedParameterReportData(doc):
-    project_shared_para = []
-    family_shared_para = []
-    paras = GetAllSharedParameters(doc)
-    for p in paras:
+    parameter_def_list = []
+    doc_name = doc.Title
+    for p in para_elements:
         pdef = p.GetDefinition()
-        pbindings = ParamBindingExists(doc, pdef.Id)
+        para_id = pdef.Id
+        pbindings = ParamBindingExists(doc, para_id)
         para_cat = pbindings[0]
         para_typ = pbindings[1]
-        if len(pbindings[0]) > 0:
-            project_shared_para.append([
-                p.GuidValue.ToString(),
-                str(p.Id.IntegerValue),
-                Element.Name.GetValue(p),
-                para_typ,
-                pdef.ParameterType.ToString(),
-                pdef.ParameterGroup.ToString(),
-                pdef.UnitType.ToString(),
-                str(para_cat)
-            ])
+        if para_typ != "Instance" and para_typ != "Type":
+            para_typ = "Not on PP list"
+        if pdef.Id.IntegerValue > 0:
+            parameter_def = p.GetDefinition()
+            parameter_def_name = parameter_def.Name
+            parameter_def_group = parameter_def.ParameterGroup.ToString()
+            parameter_def_type = parameter_def.ParameterType.ToString()
+            parameter_def_unit = parameter_def.UnitType.ToString()
+            try:
+                parameter_def_guid = p.GuidValue.ToString()
+            except:
+                parameter_def_guid = "Project Parameter"
+            parameter_def_list.append([doc_name,
+                                       parameter_def_name,
+                                       para_typ,
+                                       parameter_def_group,
+                                       parameter_def_type,
+                                       parameter_def_unit,
+                                       parameter_def_guid,
+                                       str(para_cat)])
+        elif para_id.IntegerValue == -1:
+            parameter_def_name = field.GetName()
+            parameter_def_group = "NONE"
+            parameter_def_type = "NONE"
+            parameter_def_unit = "NONE"
+            parameter_def_guid = "Combined/Formula Parameter"
+            parameter_def_list.append([doc_name,
+                                       parameter_def_name,
+                                       para_typ,
+                                       parameter_def_group,
+                                       parameter_def_type,
+                                       parameter_def_unit,
+                                       parameter_def_guid])
         else:
-            family_shared_para.append([
-                p.GuidValue.ToString(),
-                str(p.Id.IntegerValue),
-                Element.Name.GetValue(p),
-                para_typ,
-                pdef.ParameterType.ToString(),
-                pdef.ParameterGroup.ToString(),
-                pdef.UnitType.ToString(),
-                str("None")
-            ])
-    return project_shared_para, family_shared_para
+            parameter_def_name = field.GetName()
+            parameter_def_group = "NONE"
+            parameter_def_type = "NONE"
+            parameter_def_unit = "NONE"
+            parameter_def_guid = "Built-In Parameter"
+            parameter_def_list.append([doc_name,
+                                       parameter_def_name,
+                                       para_typ,
+                                       parameter_def_group,
+                                       parameter_def_type,
+                                       parameter_def_unit,
+                                       parameter_def_guid])
+    return parameter_def_list
 
 
-shared_parameters = GetSharedParameterReportData(doc)
-project_shared_parameters = shared_parameters[0]
-family_shared_parameters = shared_parameters[1]
-project_para = GetAllProjectParameters(doc)
+schedules_from_models = []
 
-OUT = project_shared_parameters, family_shared_parameters
+# Check to determine whether or not to run the linked models
+if run_link_model:
+    # Get schedules from linked instance
+    for link in revit_link_ins:
+        linked_doc = link.GetLinkDocument()
+        if linked_doc is not None:
+            schedules_from_models.append(GetSharedParameterReportData(linked_doc))
+
+# Collect schedules from current model
+schedules_from_models.append(GetSharedParameterReportData(doc))
+
+# Output
+OUT = schedules_from_models
